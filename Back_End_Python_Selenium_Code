@@ -1,0 +1,79 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+import serial
+from plyer import notification  # For desktop notifications
+
+# Chrome options to keep session active
+chrome_options = Options()
+chrome_options.add_argument("--user-data-dir=/Users/Luke/Library/Application Support/Google/Chrome/AutomationProfile")  # Separate profile for Selenium
+chrome_options.add_argument("--profile-directory=Default")  # Default Chrome profile
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--remote-debugging-port=9222")  # Force new window
+chrome_options.add_argument("--disable-popup-blocking")
+chrome_options.add_argument("--disable-features=DefaultChromeProfileStartup")  # Prevent crash due to profile issue
+chrome_options.add_argument("--disable-extensions")  # Disable extensions that might interfere
+chrome_options.add_argument("--disable-gpu")  # Prevent GPU renderer crash
+chrome_options.add_argument("--disable-software-rasterizer")  # Fix rendering issue
+
+# Set up Chrome service with the path to the ChromeDriver
+service = Service(executable_path=ChromeDriverManager().install())
+
+# Launch Chrome with WhatsApp Web
+driver = webdriver.Chrome(service=service, options=chrome_options)
+
+# Open WhatsApp Web
+driver.get("https://web.whatsapp.com")
+
+# Wait until the page is fully loaded and QR code is scanned
+print("WhatsApp Web is running! Please scan the QR code.")
+WebDriverWait(driver, 300).until(
+    EC.presence_of_element_located((By.XPATH, '//span[@data-icon="menu"]'))
+)
+
+# Scan for variations of "free beer" messages
+free_beer_variations = ["free beer", "Free beer", "FREE BEER", "Free Beer"]
+
+while True:
+    try:
+        # Find all message elements
+        messages = driver.find_elements(By.XPATH, '//span[@class="_11JPr selectable-text copyable-text"]')
+
+        print(f"Found {len(messages)} messages.")  # Debugging line to show how many messages were found
+        
+        # Check each message for the "free beer" variations
+        for message in messages:
+            print(f"Checking message: {message.text}")  # Debugging line to print the message text
+            
+            if any(variation in message.text for variation in free_beer_variations):
+                print("🎉 FREE BEER DETECTED!")
+                
+                # Send signal to Arduino
+                try:
+                    with serial.Serial('/dev/cu.usbmodem14101', 9600) as arduino:
+                        arduino.write(b'1')  # Send '1' to Arduino to trigger buzzer & LED
+                        print("Signal sent to Arduino.")  # Debugging line
+                except Exception as e:
+                    print(f"Error communicating with Arduino: {e}")
+                
+                # Desktop Notification
+                notification.notify(
+                    title="Free Beer Alert", 
+                    message="🎉 Free Beer mentioned! Get ready!", 
+                    timeout=10  # Notification stays for 10 seconds
+                )
+
+                # Break the loop after sending the notification and triggering Arduino
+                break
+        
+        time.sleep(2)  # Check every 2 seconds
+
+    except Exception as e:
+        print(f"Error: {e}")
+        time.sleep(2)  # Wait before trying again in case of an error
