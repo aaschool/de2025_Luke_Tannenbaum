@@ -1,1 +1,37 @@
+// Pin definitions
+const int buttonPin = 5;  // Button connected to GPIO5 (D1)
+const int ledPin = 4;     // LED connected to GPIO4 (D2)
+const int buzzerPin = 0;  // Buzzer connected to GPIO0 (D3)
+
+int buttonState = 0;  // Variable to store button state
+
+void setup() {
+  // Initialize the button pin as input with pull-up resistor enabled
+  pinMode(buttonPin, INPUT_PULLUP);
+  
+  // Initialize the LED and Buzzer pins as output
+  pinMode(ledPin, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+  
+  // Start Serial Monitor (optional, for debugging)
+  Serial.begin(115200);
+}
+
+void loop() {
+  // Read the state of the button
+  buttonState = digitalRead(buttonPin);
+
+  // Check if the button is pressed (buttonState is LOW because of pull-up)
+  if (buttonState == LOW) {
+    digitalWrite(ledPin, HIGH);    // Turn ON the LED
+    digitalWrite(buzzerPin, HIGH); // Turn ON the Buzzer
+    Serial.println("Button Pressed! LED and Buzzer ON");
+  } else {
+    digitalWrite(ledPin, LOW);     // Turn OFF the LED
+    digitalWrite(buzzerPin, LOW);  // Turn OFF the Buzzer
+    Serial.println("Button Released! LED and Buzzer OFF");
+  }
+
+  delay(100); // Small delay to debounce button
+}
 
